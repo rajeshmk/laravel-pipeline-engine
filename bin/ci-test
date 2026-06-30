@@ -41,6 +41,17 @@ if [ -f .env.testing ] && [ -f artisan ]; then
     fi
 fi
 
+# Auto-create SQLite database file if configured and missing (prevents interactive prompts in CI)
+if [ "$DB_CONNECTION" = "sqlite" ] && [ "$DB_DATABASE" != ":memory:" ]; then
+    DB_FILE="${DB_DATABASE:-database/database.sqlite}"
+    if [ ! -f "$DB_FILE" ]; then
+        log_info "SQLite database file '$DB_FILE' does not exist. Creating it..."
+        mkdir -p "$(dirname "$DB_FILE")"
+        touch "$DB_FILE"
+        log_success "Created SQLite database file."
+    fi
+fi
+
 # Try to run migrations first if they exist
 if [ -f artisan ]; then
     log_info "Artisan detected. Checking environment..."

@@ -22,14 +22,18 @@ fi
 
 SECURITY_FAILED=0
 
-# 1. Run local-php-security-checker if available
+# 1. Run local-php-security-checker if available and lock file exists
 if command -v local-php-security-checker >/dev/null 2>&1; then
-    log_info "Running local-php-security-checker..."
-    if local-php-security-checker --path=composer.lock; then
-        log_success "local-php-security-checker scan passed."
+    if [ -f composer.lock ]; then
+        log_info "Running local-php-security-checker..."
+        if local-php-security-checker --path=composer.lock; then
+            log_success "local-php-security-checker scan passed."
+        else
+            log_error "local-php-security-checker found security vulnerabilities!"
+            SECURITY_FAILED=1
+        fi
     else
-        log_error "local-php-security-checker found security vulnerabilities!"
-        SECURITY_FAILED=1
+        log_warning "composer.lock not found. Skipping local-php-security-checker."
     fi
 else
     log_info "local-php-security-checker not found in PATH."

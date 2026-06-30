@@ -16,7 +16,7 @@ echo -e "${BLUE}${BOLD}=========================================================
 # 1. PHP Syntax Check (Linting)
 log_info "Step 1: Running PHP Syntax Checks (php -l)..."
 SYNTAX_ERRORS=0
-DIRS_TO_LINT=("app" "config" "database" "routes" "tests" "src")
+DIRS_TO_LINT=("app" "config" "database" "routes" "tests" "src" "bootstrap" "public")
 LINTED_ANY=0
 
 for dir in "${DIRS_TO_LINT[@]}"; do
@@ -34,6 +34,28 @@ for dir in "${DIRS_TO_LINT[@]}"; do
         done < <(find "$dir" -type f -name "*.php" -print0)
     fi
 done
+
+# Lint root-level PHP files and artisan
+ROOT_PHP_FILES=()
+while IFS= read -r -d '' file; do
+    ROOT_PHP_FILES+=("$file")
+done < <(find . -maxdepth 1 -type f -name "*.php" -print0)
+
+if [ -f artisan ]; then
+    ROOT_PHP_FILES+=("artisan")
+fi
+
+if [ ${#ROOT_PHP_FILES[@]} -gt 0 ]; then
+    LINTED_ANY=1
+    log_info "Linting root-level PHP files..."
+    for file in "${ROOT_PHP_FILES[@]}"; do
+        if ! php -l "$file" > /dev/null 2>&1; then
+            log_error "Syntax error in file: $file"
+            php -l "$file" || true
+            SYNTAX_ERRORS=1
+        fi
+    done
+fi
 
 if [ "$LINTED_ANY" -eq 0 ]; then
     log_warning "No standard source directories found (app, config, database, routes, tests, src). Skipping syntax lint."
