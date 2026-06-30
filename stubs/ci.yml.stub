@@ -1,0 +1,39 @@
+name: CI (Hatchyu Pipeline Engine)
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  ci-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '{{PHP_VERSION}}'
+        extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, intl
+        coverage: none
+
+    - name: Copy Environment File
+      run: php -r "file_exists('.env.testing') || copy('.env.example', '.env.testing');"
+
+    - name: Cache Composer Dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.composer/cache/files
+        key: dependencies-laravel-composer-${{ hashFiles('**/composer.lock') }}
+        restore-keys: dependencies-laravel-composer-
+
+    - name: Install Composer Dependencies
+      run: composer install --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+{{NODE_STEPS}}
+{{LINT_STEP}}
+{{SECURITY_STEP}}
+{{TEST_STEP}}

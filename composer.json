@@ -1,0 +1,49 @@
+{
+    "name": "hatchyu/laravel-pipeline-engine",
+    "description": "A reusable, configurable, and extensible CI/CD pipeline engine for Laravel projects.",
+    "license": "MIT",
+    "type": "library",
+    "keywords": [
+        "laravel",
+        "pipeline",
+        "ci-cd",
+        "github-actions",
+        "testing",
+        "linter",
+        "hatchyu"
+    ],
+    "authors": [
+        {
+            "name": "Hatchyu",
+            "email": "hello@hatchyu.com"
+        }
+    ],
+    "require": {
+        "php": "^8.1",
+        "illuminate/support": "^9.0|^10.0|^11.0",
+        "illuminate/console": "^9.0|^10.0|^11.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^7.0|^8.0|^9.0",
+        "phpunit/phpunit": "^9.5|^10.0|^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Hatchyu\\PipelineEngine\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Hatchyu\\PipelineEngine\\LaravelPipelineEngineServiceProvider"
+            ]
+        }
+    },
+    "bin": [
+        "bin/ci-lint",
+        "bin/ci-security",
+        "bin/ci-test"
+    ],
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

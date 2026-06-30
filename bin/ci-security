@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+
+# Exit immediately if a command exits with a non-zero status
+set -e
+
+# Color definitions
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+BOLD='\033[1m'
+NC='\033[0m' # No Color
+
+log_info() {
+    echo -e "${BLUE}${BOLD}ℹ${NC} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}${BOLD}✔${NC} $1"
+}
+
+log_warning() {
+    echo -e "${YELLOW}${BOLD}⚠${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}${BOLD}✘${NC} $1"
+}
+
+echo -e "\n${BLUE}${BOLD}=============================================================${NC}"
+echo -e "${BLUE}${BOLD}             Hatchyu Pipeline Engine: Security               ${NC}"
+echo -e "${BLUE}${BOLD}=============================================================${NC}\n"
+
+log_info "Scanning package dependencies for security vulnerabilities..."
+
+if [ ! -f composer.json ]; then
+    log_error "No composer.json found in the current directory!"
+    exit 1
+fi
+
+# Run composer audit if composer is available
+if command -v composer >/dev/null 2>&1; then
+    log_info "Running 'composer audit'..."
+    
+    # Run composer audit
+    if composer audit --no-interaction; then
+        log_success "No security vulnerabilities found in dependencies."
+    else
+        log_error "Security vulnerabilities found! Please check the output above and run 'composer update' or check security advisories."
+        exit 1
+    fi
+else
+    log_warning "Composer is not installed or not in PATH. Skipping 'composer audit'."
+fi
+
+echo -e "\n${GREEN}${BOLD}✨ Security scans completed successfully!${NC}\n"

@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+
+# Exit immediately if a command exits with a non-zero status
+set -e
+
+# Color definitions
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+BOLD='\033[1m'
+NC='\033[0m' # No Color
+
+log_info() {
+    echo -e "${BLUE}${BOLD}ℹ${NC} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}${BOLD}✔${NC} $1"
+}
+
+log_warning() {
+    echo -e "${YELLOW}${BOLD}⚠${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}${BOLD}✘${NC} $1"
+}
+
+echo -e "\n${BLUE}${BOLD}=======================================================/=====${NC}"
+echo -e "${BLUE}${BOLD}             Hatchyu Pipeline Engine: Linting                ${NC}"
+echo -e "${BLUE}${BOLD}=============================================================${NC}\n"
+
+# 1. PHP Syntax Check (Linting)
+log_info "Step 1: Running PHP Syntax Checks (php -l)..."
+SYNTAX_ERRORS=0
+DIRS_TO_LINT=("app" "config" "database" "routes" "tests" "src")
+LINTED_ANY=0
+
+for dir in "${DIRS_TO_LINT[@]}"; do
+    if [ -d "$dir" ]; then
+        LINTED_ANY=1
+        log_info "Linting PHP files in directory: ${dir}/"
+        # Run php -l on all PHP files in the directory
+        while IFS= read -r -d '' file; do
+            if ! php -l "$file" > /dev/null 2>&1; then
+                log_error "Syntax error in file: $file"
+                # Run again without output redirecting to print the exact error message
+                php -l "$file" || true
+                SYNTAX_ERRORS=1
+            fi
+        done < <(find "$dir" -type f -name "*.php" -print0)
+    fi
+done
+
+if [ "$LINTED_ANY" -eq 0 ]; then
+    log_warning "No standard source directories found (app, config, database, routes, tests, src). Skipping syntax lint."
+elif [ "$SYNTAX_ERRORS" -ne 0 ]; then
+    log_error "PHP syntax checks failed!"
+    exit 1
+else
+    log_success "PHP syntax check passed successfully."
+fi
+
+echo ""
+
+# 2. Laravel Pint (Code Style)
+log_info "Step 2: Checking Code Style..."
+if [ -f vendor/bin/pint ]; then
+    log_info "Running Laravel Pint in test mode..."
+    if vendor/bin/pint --test; then
+        log_success "Laravel Pint code style check passed."
+    else
+        log_error "Laravel Pint style check failed! Please run 'vendor/bin/pint' locally to format your code."
+        exit 1
+    fi
+elif [ -f vendor/bin/php-cs-fixer ]; then
+    log_info "Running PHP-CS-Fixer in dry-run mode..."
+    if vendor/bin/php-cs-fixer fix --dry-run --diff; then
+        log_success "PHP-CS-Fixer code style check passed."
+    else
+        log_error "PHP-CS-Fixer check failed! Please run 'vendor/bin/php-cs-fixer fix' locally."
+        exit 1
+    fi
+else
+    log_warning "No code formatter found (Pint or PHP-CS-Fixer). Skipping style checks."
+fi
+
+echo ""
+
+# 3. Larastan / PHPStan (Static Analysis)
+log_info "Step 3: Running Static Analysis..."
+if [ -f vendor/bin/phpstan ]; then
+    log_info "Running Larastan/PHPStan..."
+    if vendor/bin/phpstan analyse; then
+        log_success "Static analysis passed successfully."
+    else
+        log_error "Static analysis (PHPStan) failed! Check errors above."
+        exit 1
+    fi
+else
+    log_warning "Larastan/PHPStan not found. Skipping static analysis."
+fi
+
+echo -e "\n${GREEN}${BOLD}✨ All quality checks passed successfully!${NC}\n"

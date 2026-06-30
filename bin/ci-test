@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+
+# Exit immediately if a command exits with a non-zero status
+set -e
+
+# Color definitions
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+BOLD='\033[1m'
+NC='\033[0m' # No Color
+
+log_info() {
+    echo -e "${BLUE}${BOLD}ℹ${NC} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}${BOLD}✔${NC} $1"
+}
+
+log_warning() {
+    echo -e "${YELLOW}${BOLD}⚠${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}${BOLD}✘${NC} $1"
+}
+
+echo -e "\n${BLUE}${BOLD}=============================================================${NC}"
+echo -e "${BLUE}${BOLD}             Hatchyu Pipeline Engine: Testing                ${NC}"
+echo -e "${BLUE}${BOLD}=============================================================${NC}\n"
+
+# Set fallback environment variables for fast, in-memory database testing
+export DB_CONNECTION=${DB_CONNECTION:-sqlite}
+export DB_DATABASE=${DB_DATABASE:-:memory:}
+
+log_info "Active testing environment:"
+log_info "  - DB_CONNECTION: $DB_CONNECTION"
+log_info "  - DB_DATABASE: $DB_DATABASE"
+
+# Copy env.testing if it doesn't exist but env.example does (local test run helper)
+if [ ! -f .env.testing ] && [ -f .env.example ]; then
+    log_info "Creating .env.testing from .env.example..."
+    cp .env.example .env.testing
+fi
+
+# Try to run migrations first if they exist
+if [ -f artisan ]; then
+    log_info "Artisan detected. Checking environment..."
+    php artisan env || true
+    
+    # We don't always need to run migrations explicitly here because:
+    # 1. SQLite :memory: database resets immediately.
+    # 2. Modern Laravel testing uses the RefreshDatabase trait inside tests.
+    # However, running them can check for migration integrity.
+    # Let's run migrations only if DB_DATABASE is not :memory: or if explicitly requested.
+    if [ "$DB_DATABASE" != ":memory:" ]; then
+        log_info "Running migrations..."
+        php artisan migrate --force
+    fi
+fi
+
+# Run tests
+TEST_RUNNER_RUN=0
+
+if [ -f artisan ] && php artisan list | grep -q "test"; then
+    log_info "Running tests via Artisan..."
+    php artisan test "$@"
+    TEST_RUNNER_RUN=1
+elif [ -f vendor/bin/pest ]; then
+    log_info "Running tests via Pest..."
+    vendor/bin/pest "$@"
+    TEST_RUNNER_RUN=1
+elif [ -f vendor/bin/phpunit ]; then
+    log_info "Running tests via PHPUnit..."
+    vendor/bin/phpunit "$@"
+    TEST_RUNNER_RUN=1
+fi
+
+if [ "$TEST_RUNNER_RUN" -eq 1 ]; then
+    log_success "Tests completed successfully."
+else
+    log_warning "No test runner detected (Artisan test, Pest, or PHPUnit). Skipping test execution."
+fi
+
+echo -e "\n${GREEN}${BOLD}✨ Test phase completed successfully!${NC}\n"
