@@ -20,19 +20,44 @@ if [ ! -f composer.json ]; then
     exit 1
 fi
 
-# Run composer audit if composer is available
+SECURITY_FAILED=0
+
+# 1. Run local-php-security-checker if available and lock file exists
+if command -v local-php-security-checker >/dev/null 2>&1; then
+    if [ -f composer.lock ]; then
+        log_info "Running local-php-security-checker..."
+        if local-php-security-checker --path=composer.lock; then
+            log_success "local-php-security-checker scan passed."
+        else
+            log_error "local-php-security-checker found security vulnerabilities!"
+            SECURITY_FAILED=1
+        fi
+    else
+        log_warning "composer.lock not found. Skipping local-php-security-checker."
+    fi
+else
+    log_info "local-php-security-checker not found in PATH."
+fi
+
+echo ""
+
+# 2. Run composer audit if composer is available
 if command -v composer >/dev/null 2>&1; then
     log_info "Running 'composer audit'..."
-    
-    # Run composer audit
     if composer audit --no-interaction; then
-        log_success "No security vulnerabilities found in dependencies."
+        log_success "composer audit scan passed."
     else
-        log_error "Security vulnerabilities found! Please check the output above and run 'composer update' or check security advisories."
-        exit 1
+        log_error "composer audit found security vulnerabilities!"
+        SECURITY_FAILED=1
     fi
 else
     log_warning "Composer is not installed or not in PATH. Skipping 'composer audit'."
+fi
+
+# Exit with error if any security scan failed
+if [ $SECURITY_FAILED -ne 0 ]; then
+    log_error "Security audits failed! Please address the issues listed above."
+    exit 1
 fi
 
 echo -e "\n${GREEN}${BOLD}✨ Security scans completed successfully!${NC}\n"

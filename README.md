@@ -4,6 +4,12 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/hatchyu/laravel-pipeline-engine.svg?style=flat-square)](https://packagist.org/packages/hatchyu/laravel-pipeline-engine)
 [![License](https://img.shields.io/packagist/l/hatchyu/laravel-pipeline-engine.svg?style=flat-square)](LICENSE)
 
+> [!WARNING]
+> **Disclaimer & Notice for Public Users:**
+> This package is primarily developed and tailored for the author's personal, client projects, and proprietary Laravel products. While it is open-source, it is highly opinionated to fit specific workflow requirements.
+> 
+> If you choose to use this package in your own environments, please review its behaviors and defaults carefully. Use it at your own discretion.
+
 A reusable, configurable, and highly extensible CI/CD pipeline engine for Laravel projects. It provides centralized shell scripts for linting, security checking, and testing, along with a custom interactive Laravel Artisan installer command to configure GitHub Actions workflows in seconds.
 
 ---
@@ -116,6 +122,39 @@ Since the GitHub Actions file lives in your project repository, you can seamless
     # ==========================================
     - name: Run E2E Cypress Tests
       run: npm run test:e2e
+```
+
+### Running Tests in Parallel
+
+If your application has a large test suite, you can run tests in parallel to speed up execution. The test runner automatically forwards arguments to the underlying testing tool (like Pest or Artisan):
+
+```yaml
+      - name: Run Test Suite
+        run: ./vendor/bin/ci-test --parallel
+```
+
+### Testing Multiple PHP/Laravel Versions (Matrix Build)
+
+If you are developing a package or need to ensure compatibility across multiple PHP versions, you can modify the scaffolded `.github/workflows/ci.yml` file to use a GitHub Actions matrix:
+
+```yaml
+jobs:
+  ci-pipeline:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: [ '8.2', '8.3', '8.4' ]
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php }}
+        extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, intl
 ```
 
 ---

@@ -55,6 +55,15 @@ class InstallPipelineCommand extends Command
         // 5. Ask for Test step
         $runTests = $this->components->confirm('Include test execution (ci-test)?', true);
 
+        // 6. Ask for Default Configuration Files (Pint/Larastan)
+        $publishConfigs = false;
+        $missingPint = ! File::exists(base_path('pint.json'));
+        $missingPhpstan = ! File::exists(base_path('phpstan.neon')) && ! File::exists(base_path('phpstan.neon.dist'));
+
+        if ($missingPint || $missingPhpstan) {
+            $publishConfigs = $this->components->confirm('Would you like to publish default configuration files (pint.json / phpstan.neon)?', true);
+        }
+
         // Load stub
         $stubPath = __DIR__ . '/../../stubs/ci.yml.stub';
         if (! File::exists($stubPath)) {
@@ -70,12 +79,11 @@ class InstallPipelineCommand extends Command
         // Node.js steps stub
         $nodeSteps = '';
         if ($setupNode) {
-            $nodeSteps = "\n    - name: Cache NPM Dependencies\n" .
-                         "      uses: actions/cache@v4\n" .
+            $nodeSteps = "\n    - name: Setup Node.js\n" .
+                         "      uses: actions/setup-node@v4\n" .
                          "      with:\n" .
-                         "        path: ~/.npm\n" .
-                         "        key: dependencies-laravel-npm-\${{ hashFiles('**/package-lock.json') }}\n" .
-                         "        restore-keys: dependencies-laravel-npm-\n" .
+                         "        node-version: '20'\n" .
+                         "        cache: 'npm'\n" .
                          "\n" .
                          "    - name: Install & Build Frontend Assets\n" .
                          "      run: |\n" .
@@ -105,6 +113,25 @@ class InstallPipelineCommand extends Command
         File::put($workflowPath, $stub);
 
         $this->components->info('✔ GitHub Actions workflow successfully created at: ' . $workflowPath);
+
+        // Publish default configs if requested
+        if ($publishConfigs) {
+            if ($missingPint) {
+                $pintStub = __DIR__ . '/../../stubs/pint.json.stub';
+                if (File::exists($pintStub)) {
+                    File::copy($pintStub, base_path('pint.json'));
+                    $this->components->info('✔ Published default pint.json configuration.');
+                }
+            }
+
+            if ($missingPhpstan) {
+                $phpstanStub = __DIR__ . '/../../stubs/phpstan.neon.stub';
+                if (File::exists($phpstanStub)) {
+                    File::copy($phpstanStub, base_path('phpstan.neon'));
+                    $this->components->info('✔ Published default phpstan.neon configuration.');
+                }
+            }
+        }
         
         $this->line('');
         $this->info("🚀 Installation complete! To get started:");
