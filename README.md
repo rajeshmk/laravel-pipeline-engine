@@ -4,6 +4,12 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/hatchyu/laravel-pipeline-engine.svg?style=flat-square)](https://packagist.org/packages/hatchyu/laravel-pipeline-engine)
 [![License](https://img.shields.io/packagist/l/hatchyu/laravel-pipeline-engine.svg?style=flat-square)](LICENSE)
 
+> [!WARNING]
+> **Disclaimer & Notice for Public Users:**
+> This package is primarily developed and tailored for the author's personal, client projects, and proprietary Laravel products. While it is open-source, it is highly opinionated to fit specific workflow requirements.
+> 
+> If you choose to use this package in your own environments, please review its behaviors and defaults carefully. Use it at your own discretion.
+
 A reusable, configurable, and highly extensible CI/CD pipeline engine for Laravel projects. It provides centralized shell scripts for linting, security checking, and testing, along with a custom interactive Laravel Artisan installer command to configure GitHub Actions workflows in seconds.
 
 ---
